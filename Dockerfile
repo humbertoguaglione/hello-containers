@@ -1,46 +1,16 @@
-#  Copyright 2019,2020 IBM
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
+FROM python:3.8
 
-FROM node:alpine
+# set a directory for the app
+WORKDIR /usr/src/app
 
-# hadolint ignore=DL3017
-RUN apk update && apk upgrade
+# copy all the files to the container
+COPY . .
 
-# Install the application
-COPY package.json /app/package.json
-COPY app.js /app/app.js
-COPY utils.js /app/utils.js
-WORKDIR /app
-RUN npm install
+# install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Support to for arbitrary UserIds
-# https://docs.openshift.com/container-platform/3.11/creating_images/guidelines.html#openshift-specific-guidelines
-RUN chmod -R u+x /app && \
-    chgrp -R 0 /app && \
-    chmod -R g=u /app /etc/passwd
+# tell the port number the container should expose
+EXPOSE 5000
 
-ENV PORT 8080
-EXPOSE 8080
-
-# Vulnerability Advisor : Fix PASS_MAX_DAYS, PASS_MIN_DAYS and PASS_MIN_LEN, common-password
-# RUN mv -f /etc/login.defs /etc/login.defs.orig
-# RUN sed 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS 90/' /etc/login.defs.orig > /etc/login.defs
-# RUN grep -q '^PASS_MIN_DAYS' /etc/login.defs && sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS 1/' /etc/login.defs || echo 'PASS_MIN_DAYS 1\n' >> /etc/login.defs
-# RUN grep -q '^PASS_MIN_LEN' /etc/login.defs && sed -i 's/^PASS_MIN_LEN.*/PASS_MIN_LEN 8/' /etc/login.defs || echo 'PASS_MIN_LEN 9\n' >> /etc/login.defs
-# RUN grep -q '^password.*required' /etc/pam.d/common-password && sed -i 's/^password.*required.*/password    required            pam_permit.so minlen=9/' /etc/pam.d/common-password || echo 'password    required            pam_permit.so minlen=9' >> /etc/pam.d/common-password
-# Vulnerability Advisor : Temporarily remove a specific <package> that was discovered vulnerable
-# RUN dpkg --purge --force-all <package>
-
-# Define command to run the application when the container starts
-CMD ["node", "app.js"]
+# run the command
+CMD ["python", "./app.py"]
